@@ -1,4 +1,4 @@
-package com.sshyu.zibnote.adapter.in.web.member.dto;
+package com.sshyu.zibnote.adapter.out.web.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -6,15 +6,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter @Setter
-public class NaverUserInfoResDto {
+public class NaverUserInfoHttpBodyDto {
     
     private String resultcode;
     private String message;
-    private NaverUserInfoResponse response;
+    private Response response;
 
     @NoArgsConstructor @AllArgsConstructor
     @Getter @Setter
-    public class NaverUserInfoResponse {
+    public class Response {
         private String id;
         private String nickname;
         private String name;

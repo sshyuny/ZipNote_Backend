@@ -1,4 +1,4 @@
-package com.sshyu.zibnote.adapter.in.web.member.dto;
+package com.sshyu.zibnote.adapter.out.web.auth.dto;
 
 import java.util.Map;
 
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter @Setter
-public class KakaoUserInfoResDto {
+public class KakaoUserInfoHttpBodyDto {
     
     private String id;
     private String has_signed_up;
@@ -20,7 +20,7 @@ public class KakaoUserInfoResDto {
 
     @NoArgsConstructor @AllArgsConstructor
     @Getter @Setter
-    class KakaoAccount {
+    public class KakaoAccount {
         private String profile_needs_agreement;
         private String profile_nickname_needs_agreement;
     }

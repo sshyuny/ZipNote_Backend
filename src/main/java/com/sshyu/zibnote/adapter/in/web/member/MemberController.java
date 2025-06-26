@@ -7,22 +7,21 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sshyu.zibnote.adapter.in.web.common.res.ApiResponse;
 import com.sshyu.zibnote.adapter.in.web.common.res.ResponseCode;
 import com.sshyu.zibnote.adapter.in.web.common.res.ResponseMessage;
-import com.sshyu.zibnote.adapter.in.web.member.dto.KakaoTokenResDto;
-import com.sshyu.zibnote.adapter.in.web.member.dto.KakaoUserInfoResDto;
 import com.sshyu.zibnote.adapter.in.web.member.dto.LoginReqDto;
-import com.sshyu.zibnote.application.service.member.KakaoMemberService;
-import com.sshyu.zibnote.application.service.member.NaverMemberService;
+import com.sshyu.zibnote.adapter.in.web.member.dto.SocialLoginCodeReqDto;
+import com.sshyu.zibnote.adapter.in.web.member.mapper.SocialLoginDtoMapper;
+import com.sshyu.zibnote.application.service.auth.SocialLoginStrategyService;
+import com.sshyu.zibnote.domain.auth.model.SocialLoginType;
 import com.sshyu.zibnote.domain.auth.model.Token;
 import com.sshyu.zibnote.domain.auth.port.in.AuthUseCase;
-import com.sshyu.zibnote.domain.member.exception.SocialLoginException;
 import com.sshyu.zibnote.domain.member.model.Member;
 import com.sshyu.zibnote.domain.member.port.in.MemberUseCase;
 
@@ -37,8 +36,7 @@ public class MemberController {
 
     private final MemberUseCase memberUseCase;
     private final AuthUseCase authUseCase;
-    private final KakaoMemberService kakaoLoginService;
-    private final NaverMemberService naverLoginService;
+    private final SocialLoginStrategyService socialLoginStrategyService;
 
     @Value("${auth.front.redirect-uri}")
     private String frontRedirectUri;
@@ -56,24 +54,9 @@ public class MemberController {
     }
 
     @GetMapping("/pass/oauth/kakao")
-    public ResponseEntity<?> kakao(
-        @RequestParam(value = "code", required = false) String code,
-        @RequestParam(value = "error", required = false) String error,
-        @RequestParam(value = "error_description", required = false) String error_description,
-        @RequestParam(value = "state", required = false) String state
-    ) {
+    public ResponseEntity<?> kakao(@ModelAttribute SocialLoginCodeReqDto socialLoginCodeReqDto) {
 
-        if (code != null) {
-            KakaoTokenResDto kakaoToken = kakaoLoginService.getAccessToken(code);
-            String accessToken = kakaoToken.getAccess_token();
-            log.info("카카오 로그인 토큰 accessToken = {}", accessToken);
-
-            KakaoUserInfoResDto kakaoUserInfo = kakaoLoginService.getUserInfo(accessToken);
-            String id = kakaoUserInfo.getId();
-            log.info("카카오 로그인 사용자 아이디 kakao user id = {}", id);
-        } else {
-            throw new SocialLoginException("카카오 로그인 시도 실패 " + error);
-        }
+        socialLoginStrategyService.doSocialLogin(SocialLoginType.KAKAO, SocialLoginDtoMapper.toDomain(socialLoginCodeReqDto));
 
         HttpHeaders resHeader = new HttpHeaders();
         resHeader.setLocation(URI.create(frontRedirectUri));
@@ -81,14 +64,9 @@ public class MemberController {
     }
 
     @GetMapping("/pass/oauth/naver")
-    public ResponseEntity<?> naver(
-        @RequestParam(value = "code", required = false) String code,
-        @RequestParam(value = "error", required = false) String error,
-        @RequestParam(value = "error_description", required = false) String error_description,
-        @RequestParam(value = "state", required = false) String state
-    ) {
+    public ResponseEntity<?> naver(@ModelAttribute SocialLoginCodeReqDto socialLoginCodeReqDto) {
 
-        naverLoginService.doSocialLogin(code, error, error_description, state);
+        socialLoginStrategyService.doSocialLogin(SocialLoginType.NAVER, SocialLoginDtoMapper.toDomain(socialLoginCodeReqDto));
 
         HttpHeaders resHeader = new HttpHeaders();
         resHeader.setLocation(URI.create(frontRedirectUri));

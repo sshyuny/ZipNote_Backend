@@ -1,4 +1,4 @@
-package com.sshyu.zibnote.application.service.member;
+package com.sshyu.zibnote.adapter.out.web.auth.api;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -6,19 +6,22 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.sshyu.zibnote.adapter.in.web.member.dto.NaverTokenResDto;
-import com.sshyu.zibnote.adapter.in.web.member.dto.NaverUserInfoResDto;
+import com.sshyu.zibnote.adapter.out.web.auth.dto.NaverAccessTokenHttpBodyDto;
+import com.sshyu.zibnote.adapter.out.web.auth.dto.NaverUserInfoHttpBodyDto;
+import com.sshyu.zibnote.adapter.out.web.auth.mapper.SocialLoginHttpBodyMapper;
+import com.sshyu.zibnote.domain.auth.model.SocialLoginAccessToken;
+import com.sshyu.zibnote.domain.auth.model.NaverUserInfo;
 import com.sshyu.zibnote.domain.member.exception.SocialLoginException;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
-public class NaverMemberService {
+@Component
+public class NaverOauthClient {
 
     private String naverTokenRequestUrl = "https://nid.naver.com/oauth2.0/token";
     private String naverUserInfoRequestUrl = "https://openapi.naver.com/v1/nid/me";
@@ -32,20 +35,8 @@ public class NaverMemberService {
     private String naverClientSecret;
     @Value("${auth.naver.state}")
     private String naverState;
-    
-    public void doSocialLogin(final String code, final String error, final String error_description, final String state) {
 
-        log.info("[Naver Social Login] Callback Info: code={}, error={}, error_description={}, state={}", code, error, error_description, state);
-
-        if (code == null) {
-            throw new SocialLoginException("[Naver Social Login] 네이버 로그인 인증 code 받는 중 예외 발생");
-        }
-
-        NaverTokenResDto naverAccessToken = requestAccessToken(code);
-        requestUserInfo(naverAccessToken.getAccess_token());
-    }
-
-    public NaverTokenResDto requestAccessToken(String code) {
+    public SocialLoginAccessToken requestAccessToken(String code) {
 
         RestTemplate restTemplate = new RestTemplate();
 
@@ -58,13 +49,13 @@ public class NaverMemberService {
                         "&client_secret=" + naverClientSecret +
                         "&code=" + code +
                         "&state" + naverState;
-        ResponseEntity<NaverTokenResDto> response = restTemplate.exchange(
+        ResponseEntity<NaverAccessTokenHttpBodyDto> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                NaverTokenResDto.class
+                NaverAccessTokenHttpBodyDto.class
             );
-        NaverTokenResDto resBody = response.getBody();
+        NaverAccessTokenHttpBodyDto resBody = response.getBody();
 
         if (resBody == null) {
             throw new SocialLoginException("[Naver Social Login] Access Token 요청 후 응답 바디 null");
@@ -78,10 +69,10 @@ public class NaverMemberService {
             resBody.getError_description()
         );
 
-        return resBody;
+        return SocialLoginHttpBodyMapper.toDomain(resBody);
     }
 
-    public NaverUserInfoResDto requestUserInfo(String accessToken) {
+    public NaverUserInfo requestUserInfo(String accessToken) {
 
         RestTemplate restTemplate = new RestTemplate();
 
@@ -91,13 +82,13 @@ public class NaverMemberService {
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        NaverUserInfoResDto resBody;
+        NaverUserInfoHttpBodyDto resBody;
         try {
-            ResponseEntity<NaverUserInfoResDto> response = restTemplate.exchange(
+            ResponseEntity<NaverUserInfoHttpBodyDto> response = restTemplate.exchange(
                 naverUserInfoRequestUrl,
                 HttpMethod.GET,
                 entity,
-                NaverUserInfoResDto.class
+                NaverUserInfoHttpBodyDto.class
             );
             resBody = response.getBody();
         } catch (RestClientException e) {
@@ -116,7 +107,7 @@ public class NaverMemberService {
             resBody.getResponse().getName()
         );
 
-        return resBody;
+        return SocialLoginHttpBodyMapper.toDomain(resBody);
     }
 
 }
